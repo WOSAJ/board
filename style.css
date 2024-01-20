@@ -1,0 +1,59 @@
+#canvas {
+    margin-left: 1vw;
+    margin-top: 1vh;
+    border: 2px solid black;
+}
+
+#toolbox {
+    padding-left: 23.75vw;
+}
+
+#toolbox div {
+    display: inline;
+    margin-right: 0.5vw;
+}
+
+#toolbox div button.smol {
+    width: 5vw;
+    height: 5vh;
+}
+
+#toolbox div button.norm {
+    width: 10vw;
+    height: 5vh;
+}
+
+#canvas polyline {
+    stroke-linejoin: round
+}
+
+html {
+    -webkit-touch-callout: none;
+      -webkit-user-select: none;
+       -khtml-user-select: none;
+         -moz-user-select: none;
+          -ms-user-select: none;
+              user-select: none;
+}
+
+body {
+    overflow: hidden;
+}
+
+.chosen {
+    background-color: aquamarine;
+}
+
+@media (pointer:none), (pointer:coarse) {
+    #toolbox {
+        padding-left: 11.25vw;
+    }
+
+    #toolbox div button.norm {
+        width: 15vw;
+    }
+
+    #toolbox div button.smol {
+        width: 7.5vw;
+    }
+}

@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=overlays-content">-->
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="viewport" content="user-scalable=0">
+        <meta charset="utf-8"/>
+        <title>Doodleboard</title>
+        <link rel="stylesheet" href="./style.css"/>
+    </head>
+    <body>
+            <div id="toolbox">
+                <div><button class="norm chosen" id="doodle">Doodle</button></div>
+                <div><button class="norm" id="erase">Erase</button></div>
+                <div><button class="norm" id="move">Move</button></div>
+                <div><button class="norm" id="other">Other</button></div>
+                <div><button class="smol" id="undo">&lt;-</button></div>
+                <div><button class="smol" id="redo">-&gt;</button></div>
+            </div>
+            <div id="canvas-wrap">
+                <svg id="canvas" viewBox="0 0 10 10"></svg>
+            </div>
+    </body>
+    <script src="logic.js"></script>
+</html>
