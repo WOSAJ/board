@@ -1,16 +1,28 @@
-const doodleThreshold = 1
+const doodleThreshold = 0.5
 const MODE = {
     DOODLE: 0,
     ERASE: 1,
-    MOVE: 2
+    MOVE: 2,
+    OTHER: 3
 }
 const BUTTONS = {
     DOODLE: document.getElementById("doodle"),
     ERASE: document.getElementById("erase"),
-    MOVE: document.getElementById("move")
+    MOVE: document.getElementById("move"),
+    OTHER: document.getElementById("other")
 }
-
+const pallete = ["#000000", "#FFFFFF", "#ff334d", "#334cff", "#33ff7a", "#ffe933", "#b033ff", "#ff33f8", "#ff5d33", "#660000", "#33fff8"]
 const svg = document.getElementById("canvas")
+const pickerWindow = document.getElementById("colorPicker")
+const picker = document.getElementById("actualPicker")
+const palleteButtons = []
+for(let i = 0; i < 10; i++) palleteButtons[i] = document.getElementById("pallete"+i)
+const sizeWindow = document.getElementById("sizePicker")
+const sizeButton = document.getElementById("size")
+const sizeButtons = []
+for(let i = 0; i < 5; i++) sizeButtons[i] = document.getElementById("size"+i)
+const sizes = [1, 5, 15, 25, 50]
+const otherWindow = document.getElementById("otherPicker")
 
 var boxWidth = 0
 var boxHeight = 1000
@@ -19,12 +31,16 @@ var zoomMul = 1
 var stack = []
 var stackOperation = []
 var stackIndex = 0
+
 var lastDotX = 0
 var lastDotY = 0
 var currentPolyline = null
+var size = 15
+var currentSizeButton = sizeButtons[2]
 
 var mode = 0
 var lastButton = BUTTONS.DOODLE
+var returnTo = null
 
 var active = false
 var initalDotX = 0
@@ -34,34 +50,121 @@ var mousePosX = 0
 var mousePosY = 0
 
 var lastLength = -1
+var past = false
 
-window.onresize = setBox
+var otherAction = null;
+
+window.onresize =  e => {
+    setPickerCoords()
+    setBox(e)
+}
 setBox()
+setPickerCoords()
+
+for(let i = 0 ; i < palleteButtons.length; i++) {
+    let button = palleteButtons[i]
+    button.style.background = "fixed"
+    button.style.backgroundColor = pallete[i]
+    button.onclick = e => picker.value = pallete[i]
+}
+
+for(let i = 0 ; i < sizeButtons.length; i++) sizeButtons[i].onclick = e => {
+    size = sizes[i]
+    currentSizeButton.classList.remove("chosen")
+    sizeButtons[i].classList.add("chosen")
+    currentSizeButton = sizeButtons[i]
+}
+
+function setPickerCoords() {
+    let rect = BUTTONS.DOODLE.getBoundingClientRect();
+    pickerWindow.style.left = (rect.left)+"px"
+    pickerWindow.style.top = (rect.y+rect.height)+"px"
+    sizeWindow.style.left = (rect.left)+"px"
+    sizeWindow.style.top = (rect.y+rect.height*2)+"px"
+    otherWindow.style.left = (rect.left)+"px"
+    otherWindow.style.top = (rect.y+rect.height)+"px"
+}
+
+//OTHER BUTTONS
+
+sizeButton.onclick = e => {
+    sizeWindow.style.display = "block"
+}
+
+function setSelected(b) {
+    pickerWindow.style.display = "none"
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "none"
+    lastButton.classList.remove("chosen")
+    b.classList.add("chosen")
+    lastButton = b
+    mode = MODE.OTHER
+}
+
+document.getElementById("select").onclick = e => {
+    setSelected(document.getElementById("select"))
+    otherAction = {
+        start: e => {
+            console.log("start")
+        },
+        process: e => {
+            console.log("process")
+        },
+        end: e => {
+            console.log("end")
+        }
+    }
+}
+
+//MAIN BUTTONS
 
 document.getElementById("undo").onclick = undoAction
 document.getElementById("redo").onclick = redoAction
 BUTTONS.DOODLE.onclick = e => {
+    if(mode == MODE.DOODLE) {
+        pickerWindow.style.display = "block"
+        return
+    }
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "none"
     lastButton.classList.remove("chosen")
     BUTTONS.DOODLE.classList.add("chosen")
     lastButton = BUTTONS.DOODLE
     mode = MODE.DOODLE
 }
 BUTTONS.ERASE.onclick = e => {
+    pickerWindow.style.display = "none"
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "none"
     lastButton.classList.remove("chosen")
     BUTTONS.ERASE.classList.add("chosen")
     lastButton = BUTTONS.ERASE
     mode = MODE.ERASE
 }
 BUTTONS.MOVE.onclick = e => {
+    pickerWindow.style.display = "none"
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "none"
     lastButton.classList.remove("chosen")
     BUTTONS.MOVE.classList.add("chosen")
     lastButton = BUTTONS.MOVE
     mode = MODE.MOVE
 }
+BUTTONS.OTHER.onclick = e => {
+    pickerWindow.style.display = "none"
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "block"
+}
 
 //WHEN START
 
-svg.addEventListener("mousedown", chooseStart)
+svg.addEventListener("mousedown", e => {
+    if(e.shiftKey || e.which == 3) {
+        returnTo = mode
+        mode = MODE.MOVE
+    }
+    chooseStart(e)
+})
 svg.addEventListener("touchstart", e => {
     if(e.touches.length==1) {
         let obj = {clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.touches[0].target}
@@ -71,6 +174,9 @@ svg.addEventListener("touchstart", e => {
 
 function chooseStart(e) {
     active = true
+    pickerWindow.style.display = "none"
+    sizeWindow.style.display = "none"
+    otherWindow.style.display = "none"
     switch (mode) {
         case MODE.DOODLE:
             startDoodle(e)
@@ -78,6 +184,8 @@ function chooseStart(e) {
         case MODE.MOVE:
             startMove(e)
             break;
+        case MODE.OTHER:
+            if(otherAction != null) otherAction.start(e)
     }
 }
 
@@ -89,14 +197,20 @@ function startDoodle(e) {
     let y = getDoodleY(e)+initalDotY
     let node = document.createElementNS("http://www.w3.org/2000/svg", "polyline")
     node.setAttribute("points", x+","+y+" "+x+","+y+" ")
-    node.setAttribute("stroke", "#000000")
-    node.setAttribute("stroke-width", "10")
+    node.setAttribute("stroke", picker.value)
+    node.setAttribute("stroke-width", size)
     node.setAttribute("stroke-linecap", "round")
     node.setAttribute("fill", "none")
     svg.appendChild(node)
     currentPolyline = node
     lastDotX = x
     lastDotY = y
+    if(past) {
+        past = false
+        for(let i = stackIndex; stack[i] != undefined; i++) {
+            stack[i] = undefined
+        }
+    }
 }
 
 function startMove(e) {
@@ -133,14 +247,16 @@ function chooseProcess(e) {
         case MODE.MOVE:
             moveProcess(e)
             break;
+        case MODE.OTHER:
+            if(otherAction != null) otherAction.process(e)
     }
 }
 
 function doodleProcess(e) {
     if(currentPolyline == null) return
-    let x = getDoodleX(e)+initalDotX
-    let y = getDoodleY(e)+initalDotY
-    if(Math.abs(lastDotX-x) < doodleThreshold || Math.abs(lastDotX-x) < doodleThreshold) return
+    let x = Math.round((getDoodleX(e)+initalDotX+Number.EPSILON)*1000)/1000
+    let y = Math.round((getDoodleY(e)+initalDotY+Number.EPSILON)*1000)/1000
+    if(lengthDots(lastDotX, lastDotY, x, y) < doodleThreshold) return
     currentPolyline.setAttribute("points", currentPolyline.getAttribute("points")+x+","+y+" ")
     lastDotX = x
     lastDotY = y
@@ -165,32 +281,32 @@ function moveProcess(e) {
 
 //WHEN END/FAIL
 
-svg.addEventListener("mouseup", e => {
-    active = false
-    endDoodle(e)
-})
+svg.addEventListener("mouseup", endDoodle)
 svg.addEventListener("touchend", e => {
-    active = false
     if(e.touches.length==1) {
         let obj = {clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.touches[0].target}
         endDoodle(obj)
     }
 })
-svg.addEventListener("mouseleave", e => {
-    active = false
-    endDoodle(e)
-})
+svg.addEventListener("mouseleave", endDoodle)
 svg.addEventListener("touchcancel", e => {
-    active = false
     if(e.touches.length==1) {
         let obj = {clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.touches[0].target}
         endDoodle(obj)
     }
 })
 function endDoodle(e) {
-    if(currentPolyline == null) return
-    pushAction(currentPolyline, false)
-    currentPolyline = null
+    lastLength = -1
+    active = false
+    if(mode == MODE.OTHER && otherAction != null) otherAction.end(e)
+    if(currentPolyline != null) {
+        pushAction(currentPolyline, false)
+        currentPolyline = null
+    }
+    if(returnTo != null) {
+        mode = returnTo
+        returnTo = null
+    }
 }
 
 //ZOOM
@@ -214,16 +330,17 @@ svg.addEventListener("wheel", e => {
 })
 
 function sensorZoom(e) {
-    let x1 = getDoodleX(e.touches[0].clientX)
-    let x2 = getDoodleX(e.touches[1].clientX)
-    let y1 = getDoodleY(e.touches[0].clientY)
-    let y2 = getDoodleY(e.touches[1].clientY)
+    let x1 = getDoodleX({clientX:e.touches[0].clientX})
+    let x2 = getDoodleX({clientX:e.touches[1].clientX})
+    let y1 = getDoodleY({clientY:e.touches[0].clientY})
+    let y2 = getDoodleY({clientY:e.touches[1].clientY})
     if(lastLength < 0 ) {
-        lastLength = length(x1, y1, x2, y2)
+        lastLength = lengthDots(x1, y1, x2, y2)
         return;
     } else {
-        let l = length(x1, y1, x2, y2)
-        let x = (lastLength-l)/10
+        let l = lengthDots(x1, y1, x2, y2)
+        if(Math.abs(lastLength-l)<50) return
+        let x = (1+Math.sign(lastLength-l)/20)
         let a = (x1+x2)/2
         let b = (y1+y2)/2
         let arr = svg.getAttribute("viewBox").split(' ')
@@ -262,6 +379,7 @@ function setBox() {
 }
 
 function move(dx, dy) {
+    if(dx == Infinity || dx != dx || dy == Infinity || dy != dy) return
     let arr = svg.getAttribute("viewBox").split(' ')
     svg.setAttribute("viewBox", Math.round(dx) + " " + Math.round(dy) + " " + arr[2] + " " + arr[3])
 }
@@ -279,7 +397,7 @@ function getDoodleY(e) {
     let height = rect.height
     return y/height*boxHeight
 }
-function length(x1, y1, x2, y2) {
+function lengthDots(x1, y1, x2, y2) {
     return(Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)))
 }
 
@@ -292,6 +410,7 @@ function pushAction(element, remove) {
 
 function undoAction() {
     if(stackIndex == 0) return
+    past = true
     let element = stack[--stackIndex]
     let remove = stackOperation[stackIndex]
     if(remove) svg.appendChild(element)
@@ -299,7 +418,10 @@ function undoAction() {
 }
 
 function redoAction() {
-    if(stack[stackIndex] == undefined) return
+    if(stack[stackIndex] == undefined) {
+        past = false
+        return
+    }
     let element = stack[stackIndex]
     let remove = stackOperation[stackIndex++]
     if(remove) svg.removeChild(element)

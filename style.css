@@ -13,14 +13,28 @@
     margin-right: 0.5vw;
 }
 
+button {
+    background: linear-gradient(whitesmoke, lightgray)
+}
+
+button.chosen {
+    background: linear-gradient(lightgray, whitesmoke);
+}
+
+button:active {
+    background: linear-gradient(lightgray, whitesmoke);
+}
+
+#toolbox div button {
+    height: 5vh;
+}
+
 #toolbox div button.smol {
     width: 5vw;
-    height: 5vh;
 }
 
 #toolbox div button.norm {
     width: 10vw;
-    height: 5vh;
 }
 
 #canvas polyline {
@@ -40,8 +54,37 @@ body {
     overflow: hidden;
 }
 
-.chosen {
-    background-color: aquamarine;
+.picker {
+    position: fixed;
+    top:0px;
+    left: 0px;
+    border: 2px solid black;
+    width: 53.5vw;
+    height: 5vh;
+    display: none;
+}
+
+.picker .palleteColor {
+    border: 2px solid black;
+    float: left;
+    height: 100%;
+}
+
+#sizePicker .palleteColor {
+    width: 20%;
+}
+
+#colorPicker .palleteColor {
+    width: 8.333%;
+}
+
+#otherPicker {
+    height: 10vh;
+}
+
+#otherPicker .palleteColor {
+    width: 20%;
+    height: 5vh;
 }
 
 @media (pointer:none), (pointer:coarse) {
@@ -55,5 +98,9 @@ body {
 
     #toolbox div button.smol {
         width: 7.5vw;
+    }
+
+    #colorPicker {
+        width: 79vw;
     }
 }

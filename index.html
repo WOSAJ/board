@@ -19,8 +19,43 @@
                 <div><button class="smol" id="undo">&lt;-</button></div>
                 <div><button class="smol" id="redo">-&gt;</button></div>
             </div>
-            <div id="canvas-wrap">
-                <svg id="canvas" viewBox="0 0 10 10"></svg>
+            <svg id="canvas" viewBox="0 0 10 10" oncontextmenu="return false;"></svg>
+            <div class="picker" id="colorPicker">
+                <button class="palleteColor", id="size">Sizes</button>
+                <button class="palleteColor", id="pallete0"></button>
+                <button class="palleteColor", id="pallete1"></button>
+                <button class="palleteColor", id="pallete2"></button>
+                <button class="palleteColor", id="pallete3"></button>
+                <button class="palleteColor", id="pallete4"></button>
+                <button class="palleteColor", id="pallete5"></button>
+                <button class="palleteColor", id="pallete6"></button>
+                <button class="palleteColor", id="pallete7"></button>
+                <button class="palleteColor", id="pallete8"></button>
+                <button class="palleteColor", id="pallete9"></button>
+                <input type="color" class="palleteColor" id="actualPicker"/>
+            </div>
+            <div class="picker" id="sizePicker">
+                <button class="palleteColor", id="size0">Tiny</button>
+                <button class="palleteColor", id="size1">Small</button>
+                <button class="palleteColor chosen", id="size2">Normal</button>
+                <button class="palleteColor", id="size3">Big</button>
+                <button class="palleteColor", id="size4">Large</button>
+            </div>
+            <div class="picker" id="otherPicker">
+                <div>
+                    <button class="palleteColor", id="line">Line</button>
+                    <button class="palleteColor", id="circle">Circle</button>
+                    <button class="palleteColor", id="ellipse">Ellipse</button>
+                    <button class="palleteColor", id="rectangle">Rect</button>
+                    <button class="palleteColor", id="polygon">Polygon</button>
+                </div>
+                <div>
+                    <button class="palleteColor", id="select">Select</button>
+                    <button class="palleteColor", id="circleS">Circle (F)</button>
+                    <button class="palleteColor", id="ellipseS">Ellipse (F)</button>
+                    <button class="palleteColor", id="rectangleS">Rect (F)</button>
+                    <button class="palleteColor", id="polygonS">Polygon (F)</button>
+                </div>
             </div>
     </body>
     <script src="logic.js"></script>
