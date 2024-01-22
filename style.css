@@ -87,6 +87,12 @@ body {
     height: 5vh;
 }
 
+#selecting {
+    border: 2px dotted darkblue;
+    position: absolute;
+    pointer-events: none;
+}
+
 @media (pointer:none), (pointer:coarse) {
     #toolbox {
         padding-left: 11.25vw;

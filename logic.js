@@ -23,6 +23,7 @@ const sizeButtons = []
 for(let i = 0; i < 5; i++) sizeButtons[i] = document.getElementById("size"+i)
 const sizes = [1, 5, 15, 25, 50]
 const otherWindow = document.getElementById("otherPicker")
+const selector = document.getElementById("selecting")
 
 var boxWidth = 0
 var boxHeight = 1000
@@ -52,7 +53,15 @@ var mousePosY = 0
 var lastLength = -1
 var past = false
 
-var otherAction = null;
+var otherAction = null
+var blockMove = false
+var endOnOther = false
+var endedOnOther = false
+
+var firstPointDone = false
+var selectedSet = []
+var initalSetX  = []
+var initalSetY  = []
 
 window.onresize =  e => {
     setPickerCoords()
@@ -99,19 +108,95 @@ function setSelected(b) {
     b.classList.add("chosen")
     lastButton = b
     mode = MODE.OTHER
+    blockMove = false
 }
 
 document.getElementById("select").onclick = e => {
     setSelected(document.getElementById("select"))
     otherAction = {
         start: e => {
-            console.log("start")
+            endOnOther = true
+            blockMove = true
+            firstPointDone = true
+            initalDotX = e.clientX
+            initalDotY = e.clientY
+            selector.style.display = "block"
+            selector.style.left = initalDotX + "px"
+            selector.style.top = initalDotY + "px"
+            selector.style.width = "0px"
+            selector.style.height = "0px"
         },
         process: e => {
-            console.log("process")
+            if(!firstPointDone) return
+            selector.style.width = Math.abs(e.clientX-initalDotX) + "px"
+            selector.style.height = Math.abs(e.clientY-initalDotY) + "px"
+            if(e.clientX-initalDotX >= 0) if(e.clientY-initalDotY >= 0) {} else {
+                selector.style.top = e.clientY + "px"
+            } else if(e.clientY-initalDotY >= 0) {
+                selector.style.left = e.clientX + "px"
+            } else {
+                selector.style.top = e.clientY + "px"
+                selector.style.left = e.clientX + "px"
+            }
         },
         end: e => {
-            console.log("end")
+            endedOnOther = false
+            if(!firstPointDone) return
+            let rect = selector.getBoundingClientRect()
+            blockMove = false
+            firstPointDone = false
+            selector.style.display = "none"
+            selector.style.left = 0
+            selector.style.top = 0
+            selector.style.width = 0
+            selector.style.height = 0
+            let x = Math.floor(rect.x)
+            let y = Math.floor(rect.y)
+            let width = Math.ceil(rect.width)
+            let height = Math.ceil(rect.height)
+            for(let i = 0; i < width; i++) for(let j = 0; j < height; j++) {
+                let element = document.elementFromPoint(i+x, j+y)
+                if(!selectedSet.includes(element) && element.parentNode == svg) selectedSet.push(element)
+            }
+            if(selectedSet.length == 0) return
+            otherAction = {
+                start: e => {
+                    initalSetX = []
+                    initalSetY = []
+                    for(let i = 0; i < selectedSet.length; i++) {
+                        let el = selectedSet[i]
+                        let trX = 0.0
+                        let trY = 0.0
+                        if(el.hasAttribute("transform")) {
+                            let translate = el.getAttribute("transform").substring(10)
+                            translate = translate.substring(0, translate.length-1).split(",")
+                            trX = parseFloat(translate[0])
+                            trY = parseFloat(translate[1])
+                        }
+                        initalSetX.push(trX)
+                        initalSetY.push(trY)
+                    }
+                    initalDotX = e.clientX
+                    initalDotY = e.clientY
+                },
+                process: e => {
+                    if(active) {
+                        for(let i = 0; i < selectedSet.length; i++) {
+                            selectedSet[i].setAttribute("transform", "translate("+(initalSetX[i]+getDoodleX({clientX:e.clientX})-getDoodleX({clientX:initalDotX}))+","+(initalSetY[i]+getDoodleY({clientY:e.clientY})-getDoodleY({clientY:initalDotY}))+")")
+                        }
+                    }
+                },
+                end: e => {
+                    if(endedOnOther) {
+                        blockMove = false
+                        endedOnOther = false
+                        endOnOther = false
+                        otherAction = null
+                        mode = MODE.MOVE
+                        selectedSet = []
+                    }
+                }
+            }
         }
     }
 }
@@ -121,18 +206,21 @@ document.getElementById("select").onclick = e => {
 document.getElementById("undo").onclick = undoAction
 document.getElementById("redo").onclick = redoAction
 BUTTONS.DOODLE.onclick = e => {
+    endOnOther = false
+    otherWindow.style.display = "none"
     if(mode == MODE.DOODLE) {
         pickerWindow.style.display = "block"
         return
     }
     sizeWindow.style.display = "none"
-    otherWindow.style.display = "none"
     lastButton.classList.remove("chosen")
     BUTTONS.DOODLE.classList.add("chosen")
     lastButton = BUTTONS.DOODLE
     mode = MODE.DOODLE
+    blockMove = false
 }
 BUTTONS.ERASE.onclick = e => {
+    endOnOther = false
     pickerWindow.style.display = "none"
     sizeWindow.style.display = "none"
     otherWindow.style.display = "none"
@@ -140,8 +228,10 @@ BUTTONS.ERASE.onclick = e => {
     BUTTONS.ERASE.classList.add("chosen")
     lastButton = BUTTONS.ERASE
     mode = MODE.ERASE
+    blockMove = false
 }
 BUTTONS.MOVE.onclick = e => {
+    endOnOther = false
     pickerWindow.style.display = "none"
     sizeWindow.style.display = "none"
     otherWindow.style.display = "none"
@@ -149,8 +239,14 @@ BUTTONS.MOVE.onclick = e => {
     BUTTONS.MOVE.classList.add("chosen")
     lastButton = BUTTONS.MOVE
     mode = MODE.MOVE
+    blockMove = false
 }
 BUTTONS.OTHER.onclick = e => {
+    if(endOnOther && otherAction != null) {
+        otherAction.end(e)
+        endedOnOther = true
+        return
+    }
     pickerWindow.style.display = "none"
     sizeWindow.style.display = "none"
     otherWindow.style.display = "block"
@@ -283,17 +379,11 @@ function moveProcess(e) {
 
 svg.addEventListener("mouseup", endDoodle)
 svg.addEventListener("touchend", e => {
-    if(e.touches.length==1) {
-        let obj = {clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.touches[0].target}
-        endDoodle(obj)
-    }
+        endDoodle(null)
 })
 svg.addEventListener("mouseleave", endDoodle)
 svg.addEventListener("touchcancel", e => {
-    if(e.touches.length==1) {
-        let obj = {clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.touches[0].target}
-        endDoodle(obj)
-    }
+    endDoodle(null)
 })
 function endDoodle(e) {
     lastLength = -1
@@ -312,6 +402,7 @@ function endDoodle(e) {
 //ZOOM
 
 function zoom(x) {
+    if(blockMove) return
     let arr = svg.getAttribute("viewBox").split(' ')
     let moveX = parseInt(arr[0])
     let moveY = parseInt(arr[1])
@@ -330,6 +421,7 @@ svg.addEventListener("wheel", e => {
 })
 
 function sensorZoom(e) {
+    if(blockMove) return
     let x1 = getDoodleX({clientX:e.touches[0].clientX})
     let x2 = getDoodleX({clientX:e.touches[1].clientX})
     let y1 = getDoodleY({clientY:e.touches[0].clientY})
@@ -379,6 +471,7 @@ function setBox() {
 }
 
 function move(dx, dy) {
+    if(blockMove) return
     if(dx == Infinity || dx != dx || dy == Infinity || dy != dy) return
     let arr = svg.getAttribute("viewBox").split(' ')
     svg.setAttribute("viewBox", Math.round(dx) + " " + Math.round(dy) + " " + arr[2] + " " + arr[3])
@@ -409,7 +502,7 @@ function pushAction(element, remove) {
 }
 
 function undoAction() {
-    if(stackIndex == 0) return
+    if(stackIndex == 0 || blockMove) return
     past = true
     let element = stack[--stackIndex]
     let remove = stackOperation[stackIndex]
@@ -418,6 +511,7 @@ function undoAction() {
 }
 
 function redoAction() {
+    if(blockMove) return
     if(stack[stackIndex] == undefined) {
         past = false
         return
