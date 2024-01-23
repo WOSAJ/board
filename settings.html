@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Doodleboard Settings</title>
+    </head>
+    <body>
+        <a href="/">Return to doodleboard</a>
+        <hr/>
+        <label>Username: </label>
+        <input type="text" id="username"/>
+        <button id="submit">Submit</button>
+    </body>
+    <script>
+        const usernameInput = document.getElementById("username")
+        usernameInput.value = localStorage.getItem("username")
+        document.getElementById("submit").onclick = e => {
+            if(usernameInput.value == null || usernameInput.value.trim() == "") return
+            localStorage.setItem("username", usernameInput.value)
+            alert(`Username setted to "` + localStorage.getItem("username") + '"')
+        }
+    </script>
+</html>

@@ -1,4 +1,6 @@
 const doodleThreshold = 0.5
+const serverURL = "http://localhost:8080"
+
 const MODE = {
     DOODLE: 0,
     ERASE: 1,
@@ -24,6 +26,12 @@ for(let i = 0; i < 5; i++) sizeButtons[i] = document.getElementById("size"+i)
 const sizes = [1, 5, 15, 25, 50]
 const otherWindow = document.getElementById("otherPicker")
 const selector = document.getElementById("selecting")
+
+const author = localStorage.getItem("username")
+if(author == null) {
+    alert(`Please enter your username in "Settings"`)
+    window.location.replace("/settings.html")
+}
 
 var boxWidth = 0
 var boxHeight = 1000
@@ -62,6 +70,7 @@ var firstPointDone = false
 var selectedSet = []
 var initalSetX  = []
 var initalSetY  = []
+var filled = false
 
 window.onresize =  e => {
     setPickerCoords()
@@ -69,6 +78,12 @@ window.onresize =  e => {
 }
 setBox()
 setPickerCoords()
+{
+    let arr = svg.getAttribute("viewBox").split(' ')
+    let w = arr[2]
+    let h = arr[3]
+    move(-w/2, -h/2)
+}
 
 for(let i = 0 ; i < palleteButtons.length; i++) {
     let button = palleteButtons[i]
@@ -156,7 +171,7 @@ document.getElementById("select").onclick = e => {
             let height = Math.ceil(rect.height)
             for(let i = 0; i < width; i++) for(let j = 0; j < height; j++) {
                 let element = document.elementFromPoint(i+x, j+y)
-                if(!selectedSet.includes(element) && element.parentNode == svg) selectedSet.push(element)
+                if(!selectedSet.includes(element) && element.parentNode == svg && !element.classList.contains("unedible")) selectedSet.push(element)
             }
             if(selectedSet.length == 0) return
             otherAction = {
@@ -201,11 +216,188 @@ document.getElementById("select").onclick = e => {
     }
 }
 
+document.getElementById("line").onclick = e => {
+    setSelected(document.getElementById("line"))
+    otherAction = {
+        start: e => {
+            let arr = svg.getAttribute("viewBox").split(' ')
+            initalDotX = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+            initalDotY = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+            let line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+            line.setAttribute("id", crypto.randomUUID())
+            line.setAttribute("date", new Date().getTime())
+            line.setAttribute("x1", initalDotX)
+            line.setAttribute("y1", initalDotY)
+            line.setAttribute("x2", initalDotX)
+            line.setAttribute("y2", initalDotY)
+            line.setAttribute("stroke", picker.value)
+            line.setAttribute("stroke-width", size)
+            line.setAttribute("stroke-linecap", "round")
+            svg.appendChild(line)
+            currentPolyline = line
+        },
+        process: e => {
+            if(!active) return
+            let arr = svg.getAttribute("viewBox").split(' ')
+            currentPolyline.setAttribute("x2", getDoodleX({clientX:e.clientX}) + parseInt(arr[0]))
+            currentPolyline.setAttribute("y2", getDoodleY({clientY:e.clientY}) + parseInt(arr[1]))
+        },
+        end: e => {}
+    }
+}
+
+document.getElementById("circle").onclick = e => {
+    setSelected(document.getElementById("circle"))
+    filled = false
+    otherAction = circleAction
+}
+
+document.getElementById("circleS").onclick = e => {
+    setSelected(document.getElementById("circleS"))
+    filled = true
+    otherAction = circleAction
+}
+
+const circleAction = {
+    start: e => {
+        let arr = svg.getAttribute("viewBox").split(' ')
+        initalDotX = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        initalDotY = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+        circle.setAttribute("id", crypto.randomUUID())
+        circle.setAttribute("date", new Date().getTime())
+        circle.setAttribute("cx", initalDotX)
+        circle.setAttribute("cy", initalDotY)
+        circle.setAttribute("r", 0)
+        circle.setAttribute("stroke", picker.value)
+        circle.setAttribute("stroke-width", size)
+        circle.setAttribute("fill", filled ? picker.value : "none")
+        svg.appendChild(circle)
+        currentPolyline = circle
+    },
+    process: e => {
+        if(!active) return
+        let arr = svg.getAttribute("viewBox").split(' ')
+        let x = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        let y = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        currentPolyline.setAttribute("r", lengthDots(x, y, initalDotX, initalDotY)/2)
+        currentPolyline.setAttribute("cx", (initalDotX+x)/2)
+        currentPolyline.setAttribute("cy", (initalDotY+y)/2)
+    },
+    end: e => {}
+}
+
+document.getElementById("rectangle").onclick = e => {
+    setSelected(document.getElementById("rectangle"))
+    filled = false
+    otherAction = rectAction
+}
+
+document.getElementById("rectangleS").onclick = e => {
+    setSelected(document.getElementById("rectangleS"))
+    filled = true
+    otherAction = rectAction
+}
+
+const rectAction = {
+    start: e => {
+        let arr = svg.getAttribute("viewBox").split(' ')
+        initalDotX = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        initalDotY = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+        rect.setAttribute("id", crypto.randomUUID())
+        rect.setAttribute("date", new Date().getTime())
+        rect.setAttribute("x", initalDotX)
+        rect.setAttribute("y", initalDotY)
+        rect.setAttribute("width", 0)
+        rect.setAttribute("height", 0)
+        rect.setAttribute("stroke", picker.value)
+        rect.setAttribute("stroke-width", size)
+        rect.setAttribute("stroke-linecap", "round")
+        rect.setAttribute("fill", filled ? picker.value : "none")
+        svg.appendChild(rect)
+        currentPolyline = rect
+    },
+    process: e => {
+        if(!active) return
+        let arr = svg.getAttribute("viewBox").split(' ')
+        let x = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        let y = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        currentPolyline.setAttribute("width", Math.abs(initalDotX-x))
+        currentPolyline.setAttribute("height", Math.abs(initalDotY-y))
+        if(x-initalDotX >= 0) if(y-initalDotY >= 0) {} else {
+            currentPolyline.setAttribute("y", y)
+        } else if(y-initalDotY >= 0) {
+            currentPolyline.setAttribute("x", x)
+        } else {
+            currentPolyline.setAttribute("y", y)
+            currentPolyline.setAttribute("x", x)
+        }
+    },
+    end: e => {}
+}
+
+document.getElementById("ellipse").onclick = e => {
+    setSelected(document.getElementById("ellipse"))
+    filled = false
+    otherAction = ellipseAction
+}
+
+document.getElementById("ellipseS").onclick = e => {
+    setSelected(document.getElementById("ellipseS"))
+    filled = true
+    otherAction = ellipseAction
+}
+
+const ellipseAction = {
+    start: e => {
+        let arr = svg.getAttribute("viewBox").split(' ')
+        initalDotX = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        initalDotY = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        let circle = document.createElementNS("http://www.w3.org/2000/svg", "ellipse")
+        circle.setAttribute("id", crypto.randomUUID())
+        circle.setAttribute("date", new Date().getTime())
+        circle.setAttribute("cx", initalDotX)
+        circle.setAttribute("cy", initalDotY)
+        circle.setAttribute("rx", 0)
+        circle.setAttribute("ry", 0)
+        circle.setAttribute("stroke", picker.value)
+        circle.setAttribute("stroke-width", size)
+        circle.setAttribute("fill", filled ? picker.value : "none")
+        svg.appendChild(circle)
+        currentPolyline = circle
+    },
+    process: e => {
+        if(!active) return
+        let arr = svg.getAttribute("viewBox").split(' ')
+        let x = getDoodleX({clientX:e.clientX}) + parseInt(arr[0])
+        let y = getDoodleY({clientY:e.clientY}) + parseInt(arr[1])
+        currentPolyline.setAttribute("cx", (initalDotX+x)/2)
+        currentPolyline.setAttribute("cy", (initalDotY+y)/2)
+        currentPolyline.setAttribute("rx", Math.abs(initalDotX-x)/2)
+        currentPolyline.setAttribute("ry", Math.abs(initalDotY-y)/2)
+    },
+    end: e => {}
+}
+
+document.getElementById("fill").onclick = e => {
+    setSelected(document.getElementById("fill"))
+    filled = true
+    otherAction = {
+        start: startDoodle,
+        process: doodleProcess,
+        end: e => {}
+    }
+} 
+
+document.getElementById("settings").onclick = e => window.location.replace("/settings.html")
+
 //MAIN BUTTONS
 
 document.getElementById("undo").onclick = undoAction
 document.getElementById("redo").onclick = redoAction
 BUTTONS.DOODLE.onclick = e => {
+    filled = false
     endOnOther = false
     otherWindow.style.display = "none"
     if(mode == MODE.DOODLE) {
@@ -292,11 +484,13 @@ function startDoodle(e) {
     let x = getDoodleX(e)+initalDotX
     let y = getDoodleY(e)+initalDotY
     let node = document.createElementNS("http://www.w3.org/2000/svg", "polyline")
+    node.setAttribute("id", crypto.randomUUID())
+    node.setAttribute("date", new Date().getTime())
     node.setAttribute("points", x+","+y+" "+x+","+y+" ")
     node.setAttribute("stroke", picker.value)
     node.setAttribute("stroke-width", size)
     node.setAttribute("stroke-linecap", "round")
-    node.setAttribute("fill", "none")
+    node.setAttribute("fill", filled ? picker.value : "none")
     svg.appendChild(node)
     currentPolyline = node
     lastDotX = x
@@ -360,7 +554,7 @@ function doodleProcess(e) {
 
 function eraceProcess(e) {
     let el = document.elementFromPoint(e.clientX, e.clientY)
-    if(el == svg || el.parentNode != svg || !active) return
+    if(el == svg || el.parentNode != svg || !active || el.classList.contains("unedible")) return
     svg.removeChild(el)
     pushAction(el, true)
 }
@@ -456,6 +650,28 @@ document.addEventListener("keydown", e => {
     else if(e.ctrlKey && e.keyCode == 89) redoAction()
 }) 
 
+{
+    let req = new XMLHttpRequest()
+    req.onload = () => {
+        console.log("responded")
+        if(req.status != 200) {
+            console.log("Load error: " + req.status)
+            return
+        }
+        let list = JSON.parse(req.responseText)
+        list.sort((a, b) => a.date-b.date)
+        list.forEach(el => {
+            svg.innerHTML += el.data
+            let node = document.getElementById(el.id)
+            node.classList.remove("unedible")
+            if(el.author != author) node.classList.add("unedible")
+        })
+    }
+    req.open("GET", serverURL+"/access")
+    req.send("get")
+    console.log('requested')
+}
+
 function setBox() {
     let rect = svg.getBoundingClientRect()
     rect.width = visualViewport.width - rect.x*2
@@ -499,6 +715,8 @@ function lengthDots(x1, y1, x2, y2) {
 function pushAction(element, remove) {
     stack[stackIndex] = element
     stackOperation[stackIndex++] = remove
+    if(!remove) saveStroke(element)
+    else removeStroke(element)
 }
 
 function undoAction() {
@@ -520,4 +738,32 @@ function redoAction() {
     let remove = stackOperation[stackIndex++]
     if(remove) svg.removeChild(element)
     else svg.appendChild(element)
+}
+
+//NET
+
+function saveStroke(element) {
+    let req = new XMLHttpRequest()
+    req.onload = () => {
+        if(req.status != 200) console.error("Save error: " + req.status)
+    }
+    req.open("POST", serverURL+"/access")
+    req.setRequestHeader("Content-Type", "application/json")
+    let obj = {
+        author: author,
+        id: element.id,
+        data: element.outerHTML,
+        date: element.getAttribute("date")
+    }
+    req.send(JSON.stringify(obj))
+}
+
+function removeStroke(element) {
+    let req = new XMLHttpRequest()
+    req.onload = () => {
+        if(req.status != 200) console.error("Delete error: " + req.status)
+    }
+    req.open("DELETE", serverURL+"/access")
+    req.setRequestHeader("Content-Type", "application/json")
+    req.send(JSON.stringify(element.id))
 }

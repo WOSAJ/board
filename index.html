@@ -1,7 +1,6 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=overlays-content">-->
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -19,7 +18,11 @@
                 <div><button class="smol" id="undo">&lt;-</button></div>
                 <div><button class="smol" id="redo">-&gt;</button></div>
             </div>
-            <svg id="canvas" viewBox="0 0 10 10" oncontextmenu="return false;"></svg>
+            <svg id="canvas" viewBox="0 0 10 10" oncontextmenu="return false;">
+                <line x1 = "0" y1 = "-200" x2 = "0" y2 = "200" stroke = "#CCCCFF" stroke-width = "15" class="unedible"/>
+                <line x1 = "-200" y1 = "0" x2 = "200" y2 = "0" stroke = "#CCCCFF" stroke-width = "15" class="unedible"/>
+                <circle cx = "0" cy = "0" r = "100" stroke = "#CCCCFF" stroke-width = "15" fill = "none" class="unedible"/>
+            </svg>
             <div class="picker" id="colorPicker">
                 <button class="palleteColor", id="size">Sizes</button>
                 <button class="palleteColor", id="pallete0"></button>
@@ -47,14 +50,14 @@
                     <button class="palleteColor", id="circle">Circle</button>
                     <button class="palleteColor", id="ellipse">Ellipse</button>
                     <button class="palleteColor", id="rectangle">Rect</button>
-                    <button class="palleteColor", id="polygon">Polygon</button>
+                    <button class="palleteColor", id="fill">Fill</button>
                 </div>
                 <div>
                     <button class="palleteColor", id="select">Select</button>
                     <button class="palleteColor", id="circleS">Circle (F)</button>
                     <button class="palleteColor", id="ellipseS">Ellipse (F)</button>
                     <button class="palleteColor", id="rectangleS">Rect (F)</button>
-                    <button class="palleteColor", id="polygonS">Polygon (F)</button>
+                    <button class="palleteColor", id="settings">Settings</button>
                 </div>
             </div>
             <div id="selecting"></div>
